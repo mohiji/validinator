@@ -4,7 +4,9 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import org.junit.Test;
 
@@ -246,5 +248,61 @@ public class BasicTests {
 	public void decodeMixedListFails() throws DecodeException {
 		List<Object> items = Arrays.asList("String", 1234, false);
 		Decoder.decodeList(items, Decoder.stringDecoder);
+	}
+
+	static class TestModel {
+		final long id;
+		final String username;
+		final String password;
+
+		TestModel(long id, String username, String password) {
+			this.id = id;
+			this.username = username;
+			this.password = password;
+		}
+	}
+
+	public void maps() throws DecodeException {
+		Map<String, String> source = new HashMap<String, String>();
+		source.put("id", "12");
+		source.put("username", "user");
+		source.put("password", "pass");
+
+		Map<String, Object> decoded = Decoder.decodeMap(source);
+		assertThat(decoded.entrySet(), is(source.entrySet()));
+	}
+
+	@Test(expected = DecodeException.class)
+	public void mapsDoNotAllowNulls() throws DecodeException {
+		Map<String, String> source = new HashMap<String, String>();
+		source.put("name", "Jonathan");
+		source.put("age", null);
+
+		Decoder.decodeMap(source);
+	}
+
+	final IDecoder<TestModel> testModelDecoder = new IDecoder<TestModel>() {
+		@Override
+		public TestModel decode(Object o) throws DecodeException {
+			Map<String, Object> props = Decoder.decodeMap(o);
+			return new TestModel(
+					Decoder.decodeLong(props.get("id")),
+					Decoder.decodeString(props.get("username")),
+					Decoder.decodeString(props.get("password")));
+
+		}
+	};
+
+	@Test
+	public void objects() throws DecodeException {
+		Map<String, Object> props = new HashMap<String, Object>();
+		props.put("id", 12L);
+		props.put("username", "user");
+		props.put("password", "pass");
+
+		TestModel model = testModelDecoder.decode(props);
+		assertThat(model.id, is(12L));
+		assertThat(model.username, is("user"));
+		assertThat(model.password, is("pass"));
 	}
 }

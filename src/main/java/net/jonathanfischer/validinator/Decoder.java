@@ -4,6 +4,7 @@ import java.lang.Iterable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class Decoder {
 	public static final IDecoder<String> stringDecoder = new IDecoder<String>() {
@@ -114,6 +115,30 @@ public class Decoder {
 		}
 	};
 
+	public static final IDecoder<Map<String, Object>> mapDecoder = new IDecoder<Map<String, Object>>() {
+		@Override
+		public Map<String, Object> decode(Object o) throws DecodeException {
+			if (o == null) throw new DecodeException("Input object was null.");
+
+			try {
+				Map m = (Map)o;
+				for (Object entryObj: m.entrySet()) {
+					Map.Entry entry = (Map.Entry)entryObj;
+
+					// Relying on a ClassCastException to make sure the keys are strings
+					String key = (String)entry.getKey();
+
+					if (entry.getValue() == null) throw new DecodeException("A map value was null.");
+				}
+
+				return (Map<String, Object>)m;
+			}
+			catch (ClassCastException e) {
+				throw new DecodeException(e);
+			}
+		}
+	};
+
 	public static String decodeString(Object o) throws DecodeException {
 		return stringDecoder.decode(o);
 	}
@@ -161,5 +186,9 @@ public class Decoder {
 		catch (ClassCastException e) {
 			throw new DecodeException(e);
 		}
+	}
+
+	public static Map<String, Object> decodeMap(Object o) throws DecodeException {
+		return mapDecoder.decode(o);
 	}
 }
